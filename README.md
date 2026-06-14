@@ -19,19 +19,26 @@ Research Agent (primary)
         └── Brave
 ```
 
-**Cost: 0€** — no API keys needed. SearXNG searches multiple engines for free.
+**Cost: 0€** — no API keys needed.
 
 ## Quick Install
 
-### Windows (PowerShell)
+### Windows
 ```powershell
 irm https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent/main/install.ps1 | iex
 ```
 
-### Linux (bash)
+### Linux
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent/main/install.sh | bash
 ```
+
+**What the script does:**
+1. Installs **bun** (if not present)
+2. Copies the **agent files** to `~/.config/opencode/agents/`
+3. **Merges the MCPs** into your existing `~/.config/opencode/opencode.json` — preserves your providers, models, and other MCPs
+4. Precaches the MCP packages for faster startup
+5. Prints instructions to start SearXNG
 
 ## Prerequisites
 
@@ -46,38 +53,25 @@ docker run -d --name searxng -p 8080:8080 searxng/searxng
 podman run -d --name searxng -p 8080:8080 searxng/searxng
 ```
 
-Verify: `curl http://localhost:8080` should return SearXNG HTML.
+Verify with `curl http://localhost:8080`.
 
 ## Restart OpenCode
 
-Close and reopen OpenCode. The **Research** agent will appear as a primary tab (alongside Build and Plan). Press TAB to switch.
+Close and reopen OpenCode. The **Research** agent appears as a primary tab (TAB to switch).
 
 ## Usage Examples
 
-### Explanatory
-```
-what is PagedAttention and how does it work?
-```
-
-### Problem-solving
-```
-I want to build an AI inference server for my RTX Pro 6000
-```
-
-### Comparison
-```
-compare vLLM vs SGLang vs llama.cpp for local inference
-```
-
-### Deep dive
-```
-@deep-research what is the best RAG architecture for a 5M document enterprise system?
-```
+| Intent | Example |
+|--------|---------|
+| Explanatory | `what is PagedAttention and how does it work?` |
+| Problem-solving | `I want to build an AI inference server for my RTX Pro 6000` |
+| Comparison | `compare vLLM vs SGLang vs llama.cpp for local inference` |
+| Deep dive | `@deep-research best RAG architecture for 5M documents` |
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `opencode.json` | OpenCode config with MCPs |
+| `opencode.json` | MCP fragment (merged into your existing config by the installer) |
 | `agents/research.md` | Research agent prompt |
-| `agents/deep-research.md` | Deep research subagent (invoke with @deep-research) |
+| `agents/deep-research.md` | Deep research subagent (`@deep-research`) |
