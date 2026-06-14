@@ -19,17 +19,35 @@ if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
 }
 
 # 2. Create config directories
-Write-Host "[2/4] Creating config directories..." -ForegroundColor Yellow
+Write-Host "[2/4] Creating agent files..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Path $AGENTS_DIR -Force | Out-Null
-
-# 3. Download config files
-Write-Host "[3/4] Downloading agent files..." -ForegroundColor Yellow
-Invoke-WebRequest -Uri "$RAW/opencode.json" -OutFile "$CONFIG_DIR\opencode.json" -UseBasicParsing
 Invoke-WebRequest -Uri "$RAW/agents/research.md" -OutFile "$AGENTS_DIR\research.md" -UseBasicParsing
 Invoke-WebRequest -Uri "$RAW/agents/deep-research.md" -OutFile "$AGENTS_DIR\deep-research.md" -UseBasicParsing
 
-# 4. Install MCP packages
-Write-Host "[4/4] Installing MCP packages (first run will be slower)..." -ForegroundColor Yellow
+# 3. Merge MCPs into existing opencode.json (preserves your config)
+Write-Host "[3/4] Adding MCPs to your existing config..." -ForegroundColor Yellow
+$CONFIG_FILE = "$CONFIG_DIR\opencode.json"
+$MCP_FRAGMENT = Invoke-RestMethod -Uri "$RAW/opencode.json" -UseBasicParsing
+
+if (Test-Path $CONFIG_FILE) {
+    $config = Get-Content $CONFIG_FILE -Raw | ConvertFrom-Json
+    $mcp = $MCP_FRAGMENT.mcp
+    if (-not $config.mcp) { $config | Add-Member -NotePropertyName mcp -NotePropertyValue @{} }
+    foreach ($key in $mcp.PSObject.Properties.Name) {
+        $config.mcp | Add-Member -MemberType NoteProperty -Name $key -Value $mcp.$key -Force
+    }
+    if (-not $config.default_agent) { $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research" }
+    $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
+} else {
+    $config = $MCP_FRAGMENT
+    $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research"
+    $config | Add-Member -NotePropertyName '$schema' -NotePropertyValue "https://opencode.ai/config.json" -Force
+    $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
+}
+Write-Host "  > Existing MCPs preserved. searxng and omnisearch added." -ForegroundColor Gray
+
+# 4. Cache MCP packages
+Write-Host "[4/4] Caching MCP packages (first run will be faster)..." -ForegroundColor Yellow
 & "bunx" -y -p one-search-mcp one-search-mcp --version 2>$null
 & "bunx" -y -p mcp-omnisearch mcp-omnisearch --version 2>$null
 
