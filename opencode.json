@@ -1,0 +1,23 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "research",
+  "mcp": {
+    "searxng": {
+      "type": "local",
+      "command": ["bunx", "-y", "-p", "one-search-mcp", "one-search-mcp"],
+      "enabled": true,
+      "env": {
+        "SEARCH_PROVIDER": "searxng",
+        "SEARCH_API_URL": "http://localhost:8080"
+      }
+    },
+    "omnisearch": {
+      "type": "local",
+      "command": ["bunx", "-y", "-p", "mcp-omnisearch", "mcp-omnisearch"],
+      "enabled": true,
+      "env": {
+        "SEARXNG_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
