@@ -22,18 +22,34 @@ else
     echo "[1/4] bun already installed"
 fi
 
-# 2. Create config directories
-echo "[2/4] Creating config directories..."
+# 2. Create config directories & download agents
+echo "[2/4] Creating agent files..."
 mkdir -p "$AGENTS_DIR"
-
-# 3. Download config files
-echo "[3/4] Downloading agent files..."
-curl -fsSL "$RAW/opencode.json" -o "$CONFIG_DIR/opencode.json"
 curl -fsSL "$RAW/agents/research.md" -o "$AGENTS_DIR/research.md"
 curl -fsSL "$RAW/agents/deep-research.md" -o "$AGENTS_DIR/deep-research.md"
 
+# 3. Merge MCPs into existing opencode.json (preserves user config)
+echo "[3/4] Adding MCPs to your existing config..."
+CONFIG_FILE="$CONFIG_DIR/opencode.json"
+FRAGMENT_FILE=$(mktemp)
+curl -fsSL "$RAW/opencode.json" -o "$FRAGMENT_FILE"
+
+if [ -f "$CONFIG_FILE" ]; then
+    # Merge MCP entries from fragment into existing config
+    jq -s '.[0] as $existing | .[1] as $fragment |
+      if $existing.mcp then $existing else $existing + {mcp: {}} end |
+      .mcp = (.mcp + $fragment.mcp) |
+      if .default_agent == null then .default_agent = "research" else . end
+    ' "$CONFIG_FILE" "$FRAGMENT_FILE" > "${CONFIG_FILE}.tmp" && mv "${CONFIG_FILE}.tmp" "$CONFIG_FILE"
+    echo "  > Existing MCPs preserved. SearXNG and Omnisearch added."
+else
+    # No existing config — create one from fragment
+    jq '. + {"$schema": "https://opencode.ai/config.json", "default_agent": "research"}' "$FRAGMENT_FILE" > "$CONFIG_FILE"
+fi
+rm "$FRAGMENT_FILE"
+
 # 4. Cache MCP packages
-echo "[4/4] Caching MCP packages (first run is faster after this)..."
+echo "[4/4] Caching MCP packages..."
 bunx -y -p one-search-mcp one-search-mcp --version 2>/dev/null || true
 bunx -y -p mcp-omnisearch mcp-omnisearch --version 2>/dev/null || true
 
