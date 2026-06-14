@@ -18,11 +18,12 @@ if (-not (Get-Command bun -ErrorAction SilentlyContinue)) {
     Write-Host "[1/4] bun already installed" -ForegroundColor Green
 }
 
-# 2. Create config directories
+# 2. Download agent files
 Write-Host "[2/4] Creating agent files..." -ForegroundColor Yellow
 New-Item -ItemType Directory -Path $AGENTS_DIR -Force | Out-Null
 Invoke-WebRequest -Uri "$RAW/agents/research.md" -OutFile "$AGENTS_DIR\research.md" -UseBasicParsing
 Invoke-WebRequest -Uri "$RAW/agents/deep-research.md" -OutFile "$AGENTS_DIR\deep-research.md" -UseBasicParsing
+Invoke-WebRequest -Uri "$RAW/agents/verifier.md" -OutFile "$AGENTS_DIR\verifier.md" -UseBasicParsing
 
 # 3. Merge MCPs into existing opencode.json (preserves your config)
 Write-Host "[3/4] Adding MCPs to your existing config..." -ForegroundColor Yellow
@@ -38,18 +39,19 @@ if (Test-Path $CONFIG_FILE) {
     }
     if (-not $config.default_agent) { $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research" }
     $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
+    Write-Host "  > Existing config preserved. MCPs added: searxng, omnisearch, arxiv" -ForegroundColor Gray
 } else {
     $config = $MCP_FRAGMENT
     $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research"
     $config | Add-Member -NotePropertyName '$schema' -NotePropertyValue "https://opencode.ai/config.json" -Force
     $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
 }
-Write-Host "  > Existing MCPs preserved. searxng and omnisearch added." -ForegroundColor Gray
 
 # 4. Cache MCP packages
-Write-Host "[4/4] Caching MCP packages (first run will be faster)..." -ForegroundColor Yellow
+Write-Host "[4/4] Caching MCP packages..." -ForegroundColor Yellow
 & "bunx" -y -p one-search-mcp one-search-mcp --version 2>$null
 & "bunx" -y -p mcp-omnisearch mcp-omnisearch --version 2>$null
+& "bunx" -y -p @cyanheads/arxiv-mcp-server arxiv-mcp-server --version 2>$null
 
 Write-Host ""
 Write-Host "=== Installation complete! ===" -ForegroundColor Green
