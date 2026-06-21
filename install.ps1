@@ -47,11 +47,11 @@ if (Test-Path $CONFIG_FILE) {
     $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
 }
 
-# 4. Cache MCP packages
+# 4. Cache MCP packages (use --bun to avoid starting servers)
 Write-Host "[4/4] Caching MCP packages..." -ForegroundColor Yellow
-& "bunx" -y -p one-search-mcp one-search-mcp --version 2>$null
-& "bunx" -y -p mcp-omnisearch mcp-omnisearch --version 2>$null
-& "bunx" -y -p @cyanheads/arxiv-mcp-server arxiv-mcp-server --version 2>$null
+& "bunx" --bun --package one-search-mcp one-search-mcp --version 2>$null
+& "bunx" --bun --package mcp-omnisearch mcp-omnisearch --version 2>$null
+& "bunx" --bun --package @cyanheads/arxiv-mcp-server arxiv-mcp-server --version 2>$null
 
 Write-Host ""
 Write-Host "=== Installation complete! ===" -ForegroundColor Green
