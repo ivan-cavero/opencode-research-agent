@@ -38,13 +38,15 @@ if (Test-Path $CONFIG_FILE) {
         $config.mcp | Add-Member -MemberType NoteProperty -Name $key -Value $mcp.$key -Force
     }
     if (-not $config.default_agent) { $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research" }
-    $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
+    $json = $config | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($CONFIG_FILE, $json, [System.Text.UTF8Encoding]::new($false))
     Write-Host "  > Existing config preserved. MCPs added: searxng, omnisearch, arxiv" -ForegroundColor Gray
 } else {
     $config = $MCP_FRAGMENT
     $config | Add-Member -NotePropertyName default_agent -NotePropertyValue "research"
     $config | Add-Member -NotePropertyName '$schema' -NotePropertyValue "https://opencode.ai/config.json" -Force
-    $config | ConvertTo-Json -Depth 10 | Set-Content $CONFIG_FILE -Encoding UTF8
+    $json = $config | ConvertTo-Json -Depth 10
+    [System.IO.File]::WriteAllText($CONFIG_FILE, $json, [System.Text.UTF8Encoding]::new($false))
 }
 
 # 4. Cache MCP packages (use --bun to avoid starting servers)
