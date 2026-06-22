@@ -1,4 +1,5 @@
 {
+  "$schema": "https://opencode.ai/config.json",
   "mcp": {
     "searxng": {
       "type": "local",
@@ -7,14 +8,6 @@
       "env": {
         "SEARCH_PROVIDER": "searxng",
         "SEARCH_API_URL": "http://localhost:8080"
-      }
-    },
-    "omnisearch": {
-      "type": "local",
-      "command": ["bunx", "-y", "-p", "mcp-omnisearch", "mcp-omnisearch"],
-      "enabled": true,
-      "env": {
-        "SEARXNG_URL": "http://localhost:8080"
       }
     },
     "arxiv": {
