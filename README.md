@@ -5,26 +5,28 @@ Elite research agents for OpenCode with free, self-hosted web search via SearXNG
 ## Architecture
 
 ```
-┌─ Agents ──────────────────────────────────────────┐
-│                                                    │
-│  Research Agent    Code Agent     Docs Writer      │
-│  ├ web search      ├ code review  ├ doc generation │
-│  ├ arxiv papers    ├ refactoring  └ stop-slop gate │
-│  ├ comparisons     ├ security                       │
-│  └ subagents       └ writing                        │
-│       ├ @deep-research                              │
-│       └ @verifier                                   │
-│                                                    │
-│  ┌─ MCP Servers (optional) ────────────────────┐   │
-│  │  searxng — Web search (needs Docker)        │   │
-│  │  arxiv   — Academic paper search            │   │
-│  └─────────────────────────────────────────────┘   │
-└────────────────────────────────────────────────────┘
+┌─ Installer (Node.js — cross-platform) ─────────────────────┐
+│                                                             │
+│  ┌─ Agents ───────────────────────┐  ┌─ MCPs (optional) ─┐ │
+│  │                                 │  │                     │ │
+│  │  Research Agent  (web + arxiv)  │  │  searxng           │ │
+│  │  Deep Research   (exhaustive)   │  │  arxiv             │ │
+│  │  Verifier        (devil's adv)  │  │                     │ │
+│  │  Code Agent      (review/write) │  └─────────────────────┘ │
+│  │  Docs Writer     (docs gen)     │                           │
+│  │                                 │  ┌─ Providers ─────────┐ │
+│  │  @deep-research                 │  │                     │ │
+│  │  @verifier                      │  │  NaN (built-in)     │ │
+│  │                                 │  │  OpenAI / Custom    │ │
+│  └─────────────────────────────────┘  └─────────────────────┘ │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 **Cost: 0€** — no API keys needed.
 
 ## Install
+
+One command. Works on Windows, macOS, and Linux.
 
 ### Linux / macOS
 ```bash
@@ -36,48 +38,86 @@ curl -fsSL https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent
 irm https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent/main/install.ps1 | iex
 ```
 
+Both download and run the same cross-platform Node.js installer.
+
+## Requirements
+
+- **OpenCode** installed (CLI, Desktop, or both)
+- **Node.js** (v18+) — [nodejs.org](https://nodejs.org)
+- **Docker** or **Podman** (for SearXNG web search)
+
 ## Interactive TUI
 
-The installer uses a modern terminal UI with spinners and arrow-key checklists:
-
 ```
-  ┌──────────────────────────────────────┐
-  │  OpenCode Research Agent Installer    │
-  │  arrows · space · enter                │
-  └──────────────────────────────────────┘
+
+
+
+  ┌──────────────────────────────────────────┐
+  │  OpenCode Research Agent Installer        │
+  │  arrows · space · enter · cross-platform  │
+  └──────────────────────────────────────────┘
 
 
   ┌─ Runtime
   │
   │   Node v24.16.0
-  │   Bun v1.3.12
+  │   Running on Node.js — cross-platform
   │
   └─
 
 
-  ❯ ◉ bun    Bun (faster startup)
-    ◯ node   Node.js
+
+  ┌─ OpenCode
+  │
+  │   CLI detected
+  │   Desktop detected
+  │
+  └─
+
+
+  Install for?
+  ❯ ● Both CLI + Desktop  recommended
+    ○ CLI (terminal)
+    ○ Desktop (GUI)
+
+    arrows · enter
+
+
+  MCP Servers (optional)
+  ❯ ◉ searxng  web search (needs Docker)
+    ◉ arxiv    academic papers
 
     arrows · space · enter
+
+
+  Select provider
+  ❯ ● NaN              nan.builders — free credits included
+    ○ OpenAI            api.openai.com
+    ○ Custom            any OpenAI-compatible API
+
+    arrows · enter
+
+
+  Default model
+  ❯ ● deepseek-v4-flash  1M context, reasoning
+    ○ qwen3.6
+    ○ gemma4
+
+    arrows · enter
 ```
 
-| Step | What happens |
-|------|-------------|
-| Runtime | Detects Bun and Node.js. If both, shows a checklist to pick one |
-| OpenCode | Detects CLI and Desktop installations (RPM, macOS, AppImage, Flatpak) |
-| Targets | Shows checklist: CLI, Desktop, or Both (pre-selected based on what's detected) |
-| Agents | Downloads 5 agents with animated spinners |
-| Config | Finds existing `opencode.jsonc` or `opencode.json` |
-| MCPs | Checklist with searxng/arxiv pre-selected (optional) |
-| Default Agent | Pick which agent opens by default (research pre-selected) |
-| Provider | Guided setup with optional model fetch from API (`/v1/models`) |
-| Pre-download | Downloads selected MCP packages with spinners |
+## Features
 
-## Prerequisites
-
-- **OpenCode** installed (CLI, Desktop, or both)
-- **Bun** or **Node.js** (one is enough)
-- **Docker** or **Podman** (for SearXNG)
+| Feature | Detail |
+|---------|--------|
+| **Interactive TUI** | Full arrow-key navigation, checkboxes, spinners |
+| **Cross-platform** | Same Node.js installer runs on Win/Mac/Linux |
+| **NaN built-in** | Pre-configured NaN provider with model fetch |
+| **Custom providers** | Add any OpenAI-compatible provider |
+| **Model discovery** | Fetches `/v1/models` from provider API |
+| **5 agents** | Research, Deep Research, Verifier, Code, Docs Writer |
+| **Optional MCPs** | Enable/disable searxng, arxiv and more |
+| **Spinners** | Animated loading during downloads |
 
 ## Start SearXNG
 
@@ -85,24 +125,14 @@ The installer uses a modern terminal UI with spinners and arrow-key checklists:
 docker run -d --name searxng -p 8080:8080 searxng/searxng
 ```
 
+Then restart OpenCode. Agents appear as tabs.
+
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `install.sh` | Bootstrap (10 lines) — downloads and runs the core installer |
-| `install-core.sh` | Full TUI installer with spinners and checklists |
-| `install.ps1` | Windows installer |
+| `install.sh` | Linux/macOS bootstrap (10 lines) |
+| `install.ps1` | Windows bootstrap (10 lines) |
+| `install-core.mjs` | Cross-platform Node.js TUI installer |
 | `opencode.json` | MCP fragment (merged into config) |
 | `agents/*.md` | 5 agent prompt files |
-
-## Agents
-
-| Agent | Purpose |
-|-------|---------|
-| **Research** | Web search, arxiv, comparisons, deep explanations |
-| **Deep Research** | Exhaustive multi-loop investigation |
-| **Verifier** | Devil's advocate — challenges conclusions |
-| **Code** | Code review, refactoring, security analysis, writing |
-| **Docs Writer** | Documentation generation with stop-slop quality gates |
-
-Use `@agent-name` from any agent to delegate: `@deep-research best RAG chunking strategy`
