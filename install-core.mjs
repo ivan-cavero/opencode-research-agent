@@ -236,10 +236,14 @@ async function main() {
         options: [
             { label: 'searxng', value: 'searxng', hint: 'web search — needs Docker' },
             { label: 'arxiv', value: 'arxiv', hint: 'academic papers' },
+            { label: 'mdn', value: 'mdn', hint: 'MDN Web Docs + browser compat (remote)' },
+            { label: 'github', value: 'github', hint: 'PRs, issues, repos — needs GITHUB_TOKEN' },
+            { label: 'memory', value: 'memory', hint: 'persistent knowledge graph across sessions' },
+            { label: 'sequential-thinking', value: 'sequential-thinking', hint: 'structured multi-step reasoning' },
             { label: 'clickhouse', value: 'clickhouse', hint: 'ClickHouse database queries' },
-            { label: 'sentry', value: 'sentry', hint: 'error tracking & issues (needs auth)' },
             { label: 'azure', value: 'azure', hint: 'Azure resources (40+ services)' },
             { label: 'database', value: 'database', hint: 'MySQL · PostgreSQL · SQLite · SQL Server' },
+            { label: 'sentry', value: 'sentry', hint: 'error tracking & issues (needs auth)' },
         ],
         initialValues: ['searxng', 'arxiv'],
     });
@@ -441,6 +445,9 @@ async function main() {
         const pkgs = {
             searxng: 'one-search-mcp',
             arxiv: '@cyanheads/arxiv-mcp-server',
+            github: '@github/github-mcp-server',
+            memory: '@modelcontextprotocol/server-memory',
+            'sequential-thinking': '@modelcontextprotocol/server-sequential-thinking',
             clickhouse: 'clickhouse-mcp-server',
             sentry: '@sentry/mcp-server',
             azure: '@azure/mcp',

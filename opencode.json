@@ -49,6 +49,31 @@
       "command": ["npx", "-y", "@executeautomation/database-server"],
       "enabled": true,
       "env": {}
+    },
+    "mdn": {
+      "type": "remote",
+      "url": "https://mcp.mdn.mozilla.net/",
+      "enabled": true
+    },
+    "github": {
+      "type": "local",
+      "command": ["npx", "-y", "@github/github-mcp-server"],
+      "enabled": true,
+      "env": {
+        "GITHUB_TOKEN": ""
+      }
+    },
+    "memory": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-memory"],
+      "enabled": true,
+      "env": {}
+    },
+    "sequential-thinking": {
+      "type": "local",
+      "command": ["npx", "-y", "@modelcontextprotocol/server-sequential-thinking"],
+      "enabled": true,
+      "env": {}
     }
   }
 }
