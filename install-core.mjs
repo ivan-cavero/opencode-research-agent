@@ -1,4 +1,4 @@
-import { select, multiselect, confirm, text, intro, outro, note, isCancel } from '@clack/prompts';
+import { select, multiselect, confirm, text, password, intro, outro, note, isCancel } from '@clack/prompts';
 import kleur from 'kleur';
 import fs from 'fs';
 import path from 'path';
@@ -15,9 +15,10 @@ const AGENTS_DIR = path.join(CONFIG_DIR, 'agents');
 
 // ─── Helpers ──────────────────────────────────────────────
 
-function getJSON(url) {
+function getJSON(url, headers = {}) {
     return new Promise((resolve) => {
-        https.get(url, { timeout: 5000 }, (res) => {
+        const opts = { timeout: 8000, headers };
+        https.get(url, opts, (res) => {
             let d = '';
             res.on('data', (c) => d += c);
             res.on('end', () => { try { resolve(JSON.parse(d)); } catch { resolve(null); } });
@@ -180,14 +181,15 @@ async function main() {
 
     // ── Agents (multiselect, all on) ─────────────────────
     const agents = await multiselect({
-        message: 'Agents (all selected by default)',
+        message: 'Agents',
         options: [
-            { label: 'research', value: 'research.md', hint: 'web search & comparisons', selected: true },
-            { label: 'deep-research', value: 'deep-research.md', hint: 'exhaustive multi-round', selected: true },
-            { label: 'verifier', value: 'verifier.md', hint: 'devil\'s advocate', selected: true },
-            { label: 'code', value: 'code.md', hint: 'review · refactor · write code', selected: true },
-            { label: 'docs-writer', value: 'docs-writer.md', hint: 'documentation', selected: true },
+            { label: 'research', value: 'research.md', hint: 'web search & comparisons' },
+            { label: 'deep-research', value: 'deep-research.md', hint: 'exhaustive multi-round' },
+            { label: 'verifier', value: 'verifier.md', hint: 'devil\'s advocate' },
+            { label: 'code', value: 'code.md', hint: 'review · refactor · write code' },
+            { label: 'docs-writer', value: 'docs-writer.md', hint: 'documentation' },
         ],
+        initialValues: ['research.md', 'deep-research.md', 'verifier.md', 'code.md', 'docs-writer.md'],
     });
     if (isCancel(agents)) process.exit(0);
 
@@ -199,11 +201,12 @@ async function main() {
 
     // ── MCPs (searxng + arxiv pre-selected) ─────────────
     const mcps = await multiselect({
-        message: 'MCP Servers (both pre-selected)',
+        message: 'MCP Servers',
         options: [
-            { label: 'searxng', value: 'searxng', hint: 'web search — needs Docker', selected: true },
-            { label: 'arxiv', value: 'arxiv', hint: 'academic papers', selected: true },
+            { label: 'searxng', value: 'searxng', hint: 'web search — needs Docker' },
+            { label: 'arxiv', value: 'arxiv', hint: 'academic papers' },
         ],
+        initialValues: ['searxng', 'arxiv'],
     });
     if (isCancel(mcps)) process.exit(0);
 
@@ -259,7 +262,7 @@ async function main() {
                 {
                     label: 'NaN',
                     value: 'nan',
-                    hint: '70 €/mes · tokens ilimitados · cloud.nan.builders/r/F6K91G94',
+                    hint: '70 €/month · unlimited tokens · cloud.nan.builders/r/F6K91G94',
                 },
                 { label: 'Custom', value: 'custom', hint: 'any OpenAI-compatible API' },
             ],
@@ -271,40 +274,64 @@ async function main() {
             const pname = 'NaN';
             const purl = 'https://api.nan.builders/v1';
 
-            note(gray('Get unlimited tokens → ') + cyan('https://cloud.nan.builders/r/F6K91G94') + gray(' (70 €/mes)'));
+            note(gray('Get unlimited tokens → ') + cyan('https://cloud.nan.builders/r/F6K91G94') + gray(' (70 €/month)'));
 
-            const pkey = await text({
-                message: 'NaN API key (optional — press Enter to skip, or paste your key)',
-                initialValue: '',
+            const pkey = await password({
+                message: 'NaN API key (get one at cloud.nan.builders)',
+                mask: '*',
             });
             if (isCancel(pkey)) process.exit(0);
 
-            const models = await getJSON(`${purl}/models`);
+            // Fetch models with auth (NaN requires Bearer token)
+            const authHeader = pkey ? { Authorization: `Bearer ${pkey}` } : {};
+            const models = await getJSON(`${purl}/models`, authHeader);
 
             if (models?.data?.length > 0) {
-                const modelOptions = models.data.map((m) => ({
-                    label: m.id,
-                    value: m.id,
-                    hint: modelHint(m.id),
-                }));
+                // Filter to only LLM/chat models (exclude embeddings, tts, etc.)
+                const chatModels = models.data.filter((m) =>
+                    !m.id.includes('embedding') &&
+                    !m.id.includes('rerank') &&
+                    !m.id.includes('kokoro') &&
+                    !m.id.includes('whisper')
+                );
 
-                pmodel = await select({
-                    message: 'Default model',
-                    options: modelOptions,
-                });
+                if (chatModels.length > 0) {
+                    const modelOptions = chatModels.map((m) => ({
+                        label: m.id,
+                        value: m.id,
+                        hint: modelHint(m.id),
+                    }));
+
+                    pmodel = await select({
+                        message: 'Default model',
+                        options: modelOptions,
+                    });
+                } else {
+                    pmodel = await text({
+                        message: 'Model name',
+                        initialValue: 'deepseek-v4-flash',
+                    });
+                }
+
+                if (!isCancel(pmodel)) {
+                    const allModels = chatModels.length > 0
+                        ? chatModels.map((m) => m.id)
+                        : [pmodel];
+
+                    writeProvider(configFile, pid, pname, purl, pkey, allModels, pmodel);
+                }
             } else {
+                // Fallback: couldn't fetch models, use manual input
+                note(yellow('Could not fetch model list — enter manually'));
+
                 pmodel = await text({
                     message: 'Model name',
                     initialValue: 'deepseek-v4-flash',
                 });
-            }
 
-            if (!isCancel(pmodel)) {
-                const allModels = models?.data?.length > 0
-                    ? models.data.map((m) => m.id)
-                    : [pmodel];
-
-                writeProvider(configFile, pid, pname, purl, pkey, allModels, pmodel);
+                if (!isCancel(pmodel)) {
+                    writeProvider(configFile, pid, pname, purl, pkey, [pmodel], pmodel);
+                }
             }
         } else {
             // Custom provider
@@ -317,10 +344,11 @@ async function main() {
             const purl = await text({ message: 'Base URL', initialValue: 'https://api.example.com/v1' });
             if (isCancel(purl)) process.exit(0);
 
-            const pkey = await text({ message: 'API key (optional)', initialValue: '' });
+            const pkey = await password({ message: 'API key (optional)', mask: '*' });
             if (isCancel(pkey)) process.exit(0);
 
-            const models = await getJSON(`${purl}/models`);
+            const authHeader = pkey ? { Authorization: `Bearer ${pkey}` } : {};
+            const models = await getJSON(`${purl}/models`, authHeader);
 
             if (models?.data?.length > 0) {
                 pmodel = await select({
