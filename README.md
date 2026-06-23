@@ -1,20 +1,25 @@
 # OpenCode Research Agent
 
-Elite research agent for OpenCode with free, self-hosted web search via SearXNG.
+Elite research agents for OpenCode with free, self-hosted web search via SearXNG.
 
 ## Architecture
 
 ```
-Research Agent (primary)    Code Agent    Docs Writer Agent
-├── websearch + webfetch    ├── review    ├── code-aware docs
-├── SearXNG MCP             ├── refactor  └── stop-slop gates
-├── arXiv MCP               ├── security
-└── subagents:              └── write
-    ├── @deep-research
-    └── @verifier
-         │
-         ▼
-     SearXNG (Docker/Podman) — meta search engine (Google, Bing, DuckDuckGo, Brave)
+┌─ Agents ──────────────────────────────────────────┐
+│                                                    │
+│  Research Agent    Code Agent     Docs Writer      │
+│  ├ web search      ├ code review  ├ doc generation │
+│  ├ arxiv papers    ├ refactoring  └ stop-slop gate │
+│  ├ comparisons     ├ security                       │
+│  └ subagents       └ writing                        │
+│       ├ @deep-research                              │
+│       └ @verifier                                   │
+│                                                    │
+│  ┌─ MCP Servers (optional) ────────────────────┐   │
+│  │  searxng — Web search (needs Docker)        │   │
+│  │  arxiv   — Academic paper search            │   │
+│  └─────────────────────────────────────────────┘   │
+└────────────────────────────────────────────────────┘
 ```
 
 **Cost: 0€** — no API keys needed.
@@ -31,34 +36,48 @@ curl -fsSL https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent
 irm https://raw.githubusercontent.com/ivan-cavero/opencode-research-agent/main/install.ps1 | iex
 ```
 
-## Interactive flow
+## Interactive TUI
 
-The installer is a **TUI (terminal UI)** with arrow-key navigation:
+The installer uses a modern terminal UI with spinners and arrow-key checklists:
 
 ```
-▸ ○ searxng  Web search via SearXNG (Docker)
-  ○ arxiv    Academic paper search on arxiv.org
+  ┌──────────────────────────────────────┐
+  │  OpenCode Research Agent Installer    │
+  │  arrows · space · enter                │
+  └──────────────────────────────────────┘
 
-  ↑↓ arrows · space toggle · enter confirm
+
+  ┌─ Runtime
+  │
+  │   Node v24.16.0
+  │   Bun v1.3.12
+  │
+  └─
+
+
+  ❯ ◉ bun    Bun (faster startup)
+    ◯ node   Node.js
+
+    arrows · space · enter
 ```
 
 | Step | What happens |
 |------|-------------|
-| 1 | Detects Bun and Node.js — uses Bun if available |
-| 2 | Detects OpenCode CLI and Desktop — selects what to configure |
-| 3 | Downloads 5 agents to `~/.config/opencode/agents/` |
-| 4 | Finds existing `opencode.json` or `opencode.jsonc` |
-| 5 | Checklist: select MCPs to install (searxng, arxiv) — **optional** |
-| 6 | Pre-downloads selected MCP packages for instant startup |
-| 7 | Optionally guides through custom provider setup |
-
-Everything is **interactive with checklists** (arrows, space, enter). In non-interactive mode (piped to bash), defaults are used.
+| Runtime | Detects Bun and Node.js. If both, shows a checklist to pick one |
+| OpenCode | Detects CLI and Desktop installations (RPM, macOS, AppImage, Flatpak) |
+| Targets | Shows checklist: CLI, Desktop, or Both (pre-selected based on what's detected) |
+| Agents | Downloads 5 agents with animated spinners |
+| Config | Finds existing `opencode.jsonc` or `opencode.json` |
+| MCPs | Checklist with searxng/arxiv pre-selected (optional) |
+| Default Agent | Pick which agent opens by default (research pre-selected) |
+| Provider | Guided setup with optional model fetch from API (`/v1/models`) |
+| Pre-download | Downloads selected MCP packages with spinners |
 
 ## Prerequisites
 
 - **OpenCode** installed (CLI, Desktop, or both)
-- **Bun** or **Node.js** (one is enough; Bun recommended)
-- **Docker** or **Podman** (to run SearXNG)
+- **Bun** or **Node.js** (one is enough)
+- **Docker** or **Podman** (for SearXNG)
 
 ## Start SearXNG
 
@@ -66,36 +85,24 @@ Everything is **interactive with checklists** (arrows, space, enter). In non-int
 docker run -d --name searxng -p 8080:8080 searxng/searxng
 ```
 
-Verify with `curl http://localhost:8080`.
-
-## Agents
-
-| Agent | File | Purpose |
-|-------|------|---------|
-| **Research** | `research.md` | Web search + arxiv + comparisons + explanations |
-| **Deep Research** | `deep-research.md` | Exhaustive multi-loop investigation |
-| **Verifier** | `verifier.md` | Devil's advocate — challenges conclusions |
-| **Code** | `code.md` | Code review, refactoring, security analysis, writing |
-| **Docs Writer** | `docs-writer.md` | Documentation from code with stop-slop quality gates |
-
-Use `@agent-name` from any agent: `@deep-research best RAG chunking strategy`
-
-## Usage
-
-| Intent | Example |
-|--------|---------|
-| Explanatory | `what is PagedAttention?` |
-| Build advice | `I want to build an AI inference server` |
-| Comparison | `compare vLLM vs SGLang` |
-| Deep dive | `@deep-research RAG for 5M documents` |
-| Code review | `review this PR` |
-| Docs | `write API docs for the auth module` |
-
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `opencode.json` | MCP fragment (merged into your config) |
-| `install.sh` | Linux/macOS installer |
+| `install.sh` | Bootstrap (10 lines) — downloads and runs the core installer |
+| `install-core.sh` | Full TUI installer with spinners and checklists |
 | `install.ps1` | Windows installer |
-| `agents/*.md` | Agent prompt files |
+| `opencode.json` | MCP fragment (merged into config) |
+| `agents/*.md` | 5 agent prompt files |
+
+## Agents
+
+| Agent | Purpose |
+|-------|---------|
+| **Research** | Web search, arxiv, comparisons, deep explanations |
+| **Deep Research** | Exhaustive multi-loop investigation |
+| **Verifier** | Devil's advocate — challenges conclusions |
+| **Code** | Code review, refactoring, security analysis, writing |
+| **Docs Writer** | Documentation generation with stop-slop quality gates |
+
+Use `@agent-name` from any agent to delegate: `@deep-research best RAG chunking strategy`
