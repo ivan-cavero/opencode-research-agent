@@ -66,14 +66,9 @@ function detectOpenCode() {
 
 // ─── Provider writer ──────────────────────────────────────
 
-function writeProvider(configFile, id, name, url, key, allModels, defaultModel) {
+function writeProvider(configFile, id, name, url, key, models, defaultModel) {
     const cfg = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
     if (!cfg.provider) cfg.provider = {};
-
-    const models = {};
-    for (const m of allModels) {
-        models[m] = { name: `${name} ${m}`, tool_call: true };
-    }
 
     cfg.provider[id] = {
         npm: '@ai-sdk/openai-compatible',
@@ -83,6 +78,42 @@ function writeProvider(configFile, id, name, url, key, allModels, defaultModel) 
     };
     cfg.model = `${id}/${defaultModel}`;
     fs.writeFileSync(configFile, JSON.stringify(cfg, null, 2));
+}
+
+// ─── Rich model config for NaN ──────────────────────────
+
+function getNaNModelConfig(id) {
+    const common = { tool_call: true, reasoning: true };
+
+    if (id === 'deepseek-v4-flash') {
+        return { ...common, name: 'NaN deepseek-v4-flash', limit: { context: 1_048_576, output: 65536 } };
+    }
+    if (id === 'mimo-v2.5') {
+        return {
+            ...common,
+            name: 'NaN mimo-v2.5',
+            limit: { context: 1_048_576, output: 65536 },
+            modalities: { input: ['text', 'image', 'audio'], output: ['text'] },
+        };
+    }
+    if (id === 'gemma4') {
+        return {
+            ...common,
+            name: 'NaN gemma4',
+            limit: { context: 262_144, output: 65536 },
+            modalities: { input: ['text', 'image'], output: ['text'] },
+        };
+    }
+    if (id === 'qwen3.6') {
+        return {
+            ...common,
+            name: 'NaN qwen3.6',
+            limit: { context: 262_144, output: 65536 },
+            modalities: { input: ['text', 'image'], output: ['text'] },
+        };
+    }
+
+    return { name: `NaN ${id}`, tool_call: true };
 }
 
 // ─── Model hints for NaN ─────────────────────────────────
@@ -314,11 +345,17 @@ async function main() {
                 }
 
                 if (!isCancel(pmodel)) {
-                    const allModels = chatModels.length > 0
+                    const modelIds = chatModels.length > 0
                         ? chatModels.map((m) => m.id)
                         : [pmodel];
 
-                    writeProvider(configFile, pid, pname, purl, pkey, allModels, pmodel);
+                    // Build rich model configs with reasoning, context, modalities
+                    const models = {};
+                    for (const mId of modelIds) {
+                        models[mId] = getNaNModelConfig(mId);
+                    }
+
+                    writeProvider(configFile, pid, pname, purl, pkey, models, pmodel);
                 }
             } else {
                 // Fallback: couldn't fetch models, use manual input
@@ -330,7 +367,7 @@ async function main() {
                 });
 
                 if (!isCancel(pmodel)) {
-                    writeProvider(configFile, pid, pname, purl, pkey, [pmodel], pmodel);
+                    writeProvider(configFile, pid, pname, purl, pkey, { [pmodel]: getNaNModelConfig(pmodel) }, pmodel);
                 }
             }
         } else {
@@ -360,11 +397,16 @@ async function main() {
             }
 
             if (!isCancel(pmodel)) {
-                const allModels = models?.data?.length > 0
+                const modelIds = models?.data?.length > 0
                     ? models.data.map((m) => m.id)
                     : [pmodel];
 
-                writeProvider(configFile, pid, pname, purl, pkey, allModels, pmodel);
+                const customModels = {};
+                for (const mId of modelIds) {
+                    customModels[mId] = { name: `${pname} ${mId}`, tool_call: true };
+                }
+
+                writeProvider(configFile, pid, pname, purl, pkey, customModels, pmodel);
             }
         }
     }
