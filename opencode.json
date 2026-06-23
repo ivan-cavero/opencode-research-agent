@@ -14,6 +14,41 @@
       "type": "local",
       "command": ["bunx", "-y", "-p", "@cyanheads/arxiv-mcp-server", "arxiv-mcp-server"],
       "enabled": true
+    },
+    "clickhouse": {
+      "type": "local",
+      "command": ["npx", "-y", "clickhouse-mcp-server", "stdio"],
+      "enabled": true,
+      "env": {
+        "CLICKHOUSE_HOST": "localhost",
+        "CLICKHOUSE_PORT": "8123",
+        "CLICKHOUSE_USER": "default",
+        "CLICKHOUSE_SECURE": "false"
+      }
+    },
+    "sentry": {
+      "type": "local",
+      "command": ["npx", "-y", "@sentry/mcp-server"],
+      "enabled": true,
+      "env": {
+        "SENTRY_ACCESS_TOKEN": ""
+      }
+    },
+    "azure": {
+      "type": "local",
+      "command": ["npx", "-y", "@azure/mcp", "server", "start"],
+      "enabled": true,
+      "env": {
+        "AZURE_TENANT_ID": "",
+        "AZURE_CLIENT_ID": "",
+        "AZURE_CLIENT_SECRET": ""
+      }
+    },
+    "database": {
+      "type": "local",
+      "command": ["npx", "-y", "@executeautomation/database-server"],
+      "enabled": true,
+      "env": {}
     }
   }
 }

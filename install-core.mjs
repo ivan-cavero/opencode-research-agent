@@ -236,6 +236,10 @@ async function main() {
         options: [
             { label: 'searxng', value: 'searxng', hint: 'web search — needs Docker' },
             { label: 'arxiv', value: 'arxiv', hint: 'academic papers' },
+            { label: 'clickhouse', value: 'clickhouse', hint: 'ClickHouse database queries' },
+            { label: 'sentry', value: 'sentry', hint: 'error tracking & issues (needs auth)' },
+            { label: 'azure', value: 'azure', hint: 'Azure resources (40+ services)' },
+            { label: 'database', value: 'database', hint: 'MySQL · PostgreSQL · SQLite · SQL Server' },
         ],
         initialValues: ['searxng', 'arxiv'],
     });
@@ -411,13 +415,40 @@ async function main() {
         }
     }
 
-    // ── Install MCP dependencies silently ────────────────
+    // ── Plugins (TimeFly pre-selected) ────────────────────
+    const plugins = await multiselect({
+        message: 'Plugins',
+        options: [
+            { label: 'timefly', value: 'timefly', hint: 'AI-assisted development metrics' },
+        ],
+        initialValues: ['timefly'],
+    });
+    if (isCancel(plugins)) process.exit(0);
+
+    if (plugins.includes('timefly')) {
+        note('Setting up TimeFly plugin...');
+        run('bunx @timefly/opencode-plugin setup-opencode -- --target user 2>/dev/null || npx @timefly/opencode-plugin setup-opencode -- --target user 2>/dev/null');
+
+        // Interactive login — user authenticates in the terminal
+        const doLogin = await confirm({ message: 'Log in to TimeFly?', initialValue: true });
+        if (doLogin) {
+            run('bunx @timefly/opencode-plugin login 2>/dev/null || npx @timefly/opencode-plugin login 2>/dev/null');
+        }
+    }
+
+    // ── Pre-download MCP packages silently ──────────────
     if (mcps.length > 0) {
+        const pkgs = {
+            searxng: 'one-search-mcp',
+            arxiv: '@cyanheads/arxiv-mcp-server',
+            clickhouse: 'clickhouse-mcp-server',
+            sentry: '@sentry/mcp-server',
+            azure: '@azure/mcp',
+            database: '@executeautomation/database-server',
+        };
         for (const mcp of mcps) {
-            const cmd = mcp === 'searxng'
-                ? 'bunx -y -p one-search-mcp one-search-mcp --version 2>/dev/null; npx -y -p one-search-mcp one-search-mcp --version 2>/dev/null'
-                : 'bunx -y -p @cyanheads/arxiv-mcp-server arxiv-mcp-server --version 2>/dev/null; npx -y -p @cyanheads/arxiv-mcp-server arxiv-mcp-server --version 2>/dev/null';
-            run(cmd);
+            const pkg = pkgs[mcp];
+            if (pkg) run(`npm pack ${pkg} 2>/dev/null`);
         }
     }
 
