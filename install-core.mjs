@@ -433,6 +433,21 @@ async function main() {
         note('Setting up TimeFly plugin...');
         run('bunx @timefly/opencode-plugin setup-opencode -- --target user 2>/dev/null || npx @timefly/opencode-plugin setup-opencode -- --target user 2>/dev/null');
 
+        // TimeFly always writes to opencode.json (never .jsonc).
+        // If user's config is .jsonc, copy the plugin entry over and remove the extra file.
+        const timeflyCfg = path.join(CONFIG_DIR, 'opencode.json');
+        if (configFile.endsWith('.jsonc') && fs.existsSync(timeflyCfg)) {
+            try {
+                const timeflyContent = JSON.parse(fs.readFileSync(timeflyCfg, 'utf-8'));
+                if (timeflyContent.plugin) {
+                    const userCfg = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+                    userCfg.plugin = timeflyContent.plugin;
+                    fs.writeFileSync(configFile, JSON.stringify(userCfg, null, 2));
+                    fs.unlinkSync(timeflyCfg);
+                }
+            } catch (e) { note(yellow(`TimeFly merge: ${e.message}`)); }
+        }
+
         // Interactive login — user authenticates in the terminal
         const doLogin = await confirm({ message: 'Log in to TimeFly?', initialValue: true });
         if (doLogin) {
@@ -466,6 +481,7 @@ async function main() {
         `  Config:   ${configFile}`,
         `  Agents:   ${agents.length}`,
         `  MCPs:     ${mcps.length ? mcps.join(', ') : 'none'}`,
+        `  Plugins:  ${plugins.length ? plugins.join(', ') : 'none'}`,
         `  Default:  ${defaultAgent}`,
         ...(pid && pmodel ? [`  Provider: ${pid} / ${pmodel}`] : []),
     ].join('\n');
